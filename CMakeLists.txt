@@ -5,12 +5,22 @@ project(MLPluginInpx VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(USE_OPENMP "Build with openmp support" OFF)
+option(USE_OPENMP "Build with openmp support" ON)
 
 if(USE_OPENMP)
-  find_package(OpenMP REQUIRED)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP ${OpenMP_CXX_FLAGS}")
-  add_link_options("${OpenMP_CXX_FLAGS}")
+  try_compile(OMP_TEST "${CMAKE_BINARY_DIR}/omp_test" "${PROJECT_SOURCE_DIR}/omp_test" OmpTest)
+  if(OMP_TEST)
+      find_package(OpenMP REQUIRED)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_OPENMP ${OpenMP_CXX_FLAGS}")
+      add_link_options("${OpenMP_CXX_FLAGS}")
+      message(STATUS "OpenMP features are supported, ${PROJECT_NAME} will be built with OpenMP support")
+  else()
+      set(USE_OPENMP OFF)
+      message(WARNING "Compiler does not support some OpenMP features. ${PROJECT_NAME} will be built without OpenMP support.")
+      find_package(Threads QUIET)
+  endif()
+else()
+  find_package(Threads QUIET)
 endif()
 
 find_package(MLPluginIfc REQUIRED)
@@ -43,6 +53,10 @@ target_link_libraries(mlplugininpx
     PRIVATE MLPluginIfc::mlpluginifc
     PRIVATE atomic
 )
+
+if(Threads_FOUND)
+  target_link_libraries(mlplugininpx PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+endif()
 
 include(GNUInstallDirs)
 
