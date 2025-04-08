@@ -1,0 +1,115 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"POT-Creation-Date: 2025-03-31 19:38+0400\n"
+"PO-Revision-Date: 2025-03-31 19:38+0400\n"
+"Last-Translator: Yury Bobylev <bobilev_yury@mail.ru>\n"
+"Language-Team: \n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.5\n"
+"X-Poedit-Basepath: ../src\n"
+"X-Poedit-SearchPath-0: .\n"
+
+#: CollectionProcessGui.cpp:48
+msgid "Collection creation"
+msgstr "Создание коллекции"
+
+#: CollectionProcessGui.cpp:63
+msgid "Import progress"
+msgstr "Прогресс импорта"
+
+#: CollectionProcessGui.cpp:77 MLInpxPlugin.cpp:259
+msgid "Cancel"
+msgstr "Отмена"
+
+#: CollectionProcessGui.cpp:151
+msgid "Operation has been interrupted!"
+msgstr "Операция прервана!"
+
+#: CollectionProcessGui.cpp:155
+msgid "All operations completed."
+msgstr "Все операции завершены."
+
+#: CollectionProcessGui.cpp:163 MLInpxPlugin.cpp:171 MLInpxPlugin.cpp:527
+msgid "Close"
+msgstr "Закрыть"
+
+#: MLInpxPlugin.cpp:44
+msgid "Plugin to import collections from .inpx files"
+msgstr "Плагин для импорта коллекций из .inpx файлов"
+
+#: MLInpxPlugin.cpp:71
+msgid "Path to .inpx file:"
+msgstr "Путь к .inpx файлу:"
+
+#: MLInpxPlugin.cpp:85 MLInpxPlugin.cpp:108 MLInpxPlugin.cpp:263
+msgid "Open"
+msgstr "Открыть"
+
+#: MLInpxPlugin.cpp:94
+msgid "Path to books directory:"
+msgstr "Путь к директории с книгами:"
+
+#: MLInpxPlugin.cpp:117
+msgid "New collection name:"
+msgstr "Название новой коллекции:"
+
+#: MLInpxPlugin.cpp:138
+msgid "Threads number"
+msgstr "Количество потоков"
+
+#: MLInpxPlugin.cpp:139
+msgid "recommended max number is"
+msgstr "рекомендованное максимальное количество"
+
+#: MLInpxPlugin.cpp:162
+msgid "Import"
+msgstr "Импортировать"
+
+#: MLInpxPlugin.cpp:245
+msgid "Open .inpx"
+msgstr "Открыть .inpx"
+
+#: MLInpxPlugin.cpp:250
+msgid "Books directory"
+msgstr "Путь к директории с книгами"
+
+#: MLInpxPlugin.cpp:432 MLInpxPlugin.cpp:438 MLInpxPlugin.cpp:444
+#: MLInpxPlugin.cpp:450
+msgid "Error!"
+msgstr "Ошибка!"
+
+#: MLInpxPlugin.cpp:433
+msgid "Incorrect path to .inpx file!"
+msgstr "Некорректный путь к .inpx файлу!"
+
+#: MLInpxPlugin.cpp:439
+msgid "Incorrect path to books!"
+msgstr "Некорректный путь к книгам!"
+
+#: MLInpxPlugin.cpp:445
+msgid "Collection name is empty!"
+msgstr "Название коллекции не задано!"
+
+#: MLInpxPlugin.cpp:451
+msgid "Collection already exists!"
+msgstr "Коллекция уже существует!"
+
+#: MLInpxPlugin.cpp:456
+msgid "Confirmation"
+msgstr "Подтверждение"
+
+#: MLInpxPlugin.cpp:457
+msgid "Are you sure?"
+msgstr "Вы уверены?"
+
+#: MLInpxPlugin.cpp:490
+msgid "Yes"
+msgstr "Да"
+
+#: MLInpxPlugin.cpp:522
+msgid "No"
+msgstr "Нет"
