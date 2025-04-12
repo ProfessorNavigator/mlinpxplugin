@@ -15,6 +15,7 @@
  */
 #include <ByteOrder.h>
 #include <CollectionProcess.h>
+#include <LibArchive.h>
 #include <SelfRemovingPath.h>
 #include <algorithm>
 #include <cstring>
@@ -30,7 +31,6 @@ CollectionProcess::CollectionProcess(const std::shared_ptr<AuxFunc> &af,
 {
   this->af = af;
   this->thr_num = thr_num;
-  la = new LibArchive(af);
   hsh = new Hasher(af);
 #ifndef USE_OPENMP
   cancel.store(false);
@@ -42,8 +42,7 @@ CollectionProcess::CollectionProcess(const std::shared_ptr<AuxFunc> &af,
 }
 
 CollectionProcess::~CollectionProcess()
-{
-  delete la;
+{  
   delete hsh;
 #ifdef USE_OPENMP
   omp_destroy_lock(&base_mtx);
@@ -58,7 +57,8 @@ CollectionProcess::collectFiles(const std::filesystem::path &inpx_path,
   this->books_path = books_path;
   this->coll_name = coll_name;
   this->inpx_path = inpx_path;
-  la->fileNames(inpx_path, books_entries_list);
+  LibArchive la(af);
+  la.fileNames(inpx_path, books_entries_list);
 
   for(auto it = books_entries_list.begin(); it != books_entries_list.end();)
     {
@@ -475,7 +475,8 @@ CollectionProcess::parseInp(const std::filesystem::path &arch_path,
       = af->temp_path() / std::filesystem::u8path(af->randomFileName());
   SelfRemovingPath srp(p);
 
-  std::filesystem::path inp_p = la->unpackByPosition(arch_path, srp.path, e);
+  LibArchive la(af);
+  std::filesystem::path inp_p = la.unpackByPosition(arch_path, srp.path, e);
 
   std::fstream f;
   f.open(inp_p, std::ios_base::in | std::ios_base::binary);

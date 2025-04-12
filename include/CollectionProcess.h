@@ -16,10 +16,10 @@
 #ifndef COLLECTIONPROCESS_H
 #define COLLECTIONPROCESS_H
 
+#include <ArchEntry.h>
 #include <AuxFunc.h>
 #include <FileParseEntry.h>
 #include <Hasher.h>
-#include <LibArchive.h>
 #include <functional>
 
 #ifdef USE_OPENMP
@@ -67,9 +67,7 @@ private:
 #endif
 #ifdef USE_OPENMP
   bool cancel = false;
-#endif
-
-  LibArchive *la;
+#endif  
   Hasher *hsh;
 
   std::vector<ArchEntry> books_entries_list;
