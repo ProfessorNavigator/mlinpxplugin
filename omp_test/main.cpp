@@ -14,7 +14,9 @@
  * this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include <iostream>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 int
 main()
@@ -30,6 +32,7 @@ main()
         omp_fulfill_event(event);
       }
     }
+#pragma omp taskwait
   }
 
   return 0;

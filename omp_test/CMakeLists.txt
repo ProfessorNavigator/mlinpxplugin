@@ -5,11 +5,11 @@ project(OmpTest LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(OpenMP REQUIRED)
+find_package(MLBookProc REQUIRED)
 
-if(OpenMP_FOUND)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    add_link_options("${OpenMP_CXX_FLAGS}")
-endif()
 add_executable(omp_test main.cpp)
+
+target_include_directories(omp_test PRIVATE MLBookProc::mlbookproc)
+
+target_link_libraries(omp_test PRIVATE MLBookProc::mlbookproc)
 
