@@ -23,11 +23,11 @@ if(GTKMM_VERSION VERSION_LESS "4.10")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DML_GTK_OLD")
 endif()
 
-add_library(mlplugininpx SHARED)
+add_library(mlinpxplugin SHARED)
 
-set_target_properties(mlplugininpx PROPERTIES POSITION_INDEPENDENT_CODE True)
+set_target_properties(mlinpxplugin PROPERTIES POSITION_INDEPENDENT_CODE True)
 
-set_target_properties(mlplugininpx PROPERTIES
+set_target_properties(mlinpxplugin PROPERTIES
   VERSION ${PROJECT_VERSION}
   SOVERSION ${PROJECT_VERSION_MAJOR}
 )
@@ -35,20 +35,20 @@ set_target_properties(mlplugininpx PROPERTIES
 add_subdirectory(src)
 add_subdirectory(include)
 
-target_include_directories(mlplugininpx
+target_include_directories(mlinpxplugin
     PRIVATE include
     PRIVATE MLPluginIfc::mlpluginifc
     PRIVATE MLBookProc::mlbookproc
 )
 
-target_link_libraries(mlplugininpx
+target_link_libraries(mlinpxplugin
     PRIVATE MLPluginIfc::mlpluginifc
     PRIVATE MLBookProc::mlbookproc
 )
 
 include(GNUInstallDirs)
 
-install(TARGETS mlplugininpx EXPORT "${PROJECT_NAME}Targets"
+install(TARGETS mlinpxplugin EXPORT "${PROJECT_NAME}Targets"
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
