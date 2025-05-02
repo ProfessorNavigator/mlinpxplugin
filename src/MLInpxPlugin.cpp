@@ -38,7 +38,6 @@
 
 MLInpxPlugin::MLInpxPlugin(void *af_ptr) : MLPlugin(af_ptr)
 {
-
   plugin_name = "MLInpxPlugin";
   std::filesystem::path txt_domain = af->share_path();
   txt_domain /= std::filesystem::u8path("locale");
@@ -53,10 +52,8 @@ void
 MLInpxPlugin::createWindow(Gtk::Window *parent_window)
 {
 #ifdef USE_OPENMP
-  omp_set_dynamic(true);
-  omp_set_max_active_levels(1);
 #pragma omp parallel
-#pragma omp master
+#pragma omp masked
   {
 #endif
     this->parent_window = parent_window;

@@ -215,7 +215,8 @@ CollectionProcess::createBase()
 #ifdef USE_OPENMP
   omp_set_num_threads(thr_num);
   omp_set_dynamic(true);
-  omp_set_max_active_levels(1);
+  int lvls = omp_get_max_active_levels();
+  omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
 #pragma omp for
   for(auto it = books_entries_list.begin(); it != books_entries_list.end();
@@ -298,6 +299,8 @@ CollectionProcess::createBase()
           signal_progress(sz, total_size);
         }
     }
+  omp_set_dynamic(false);
+  omp_set_max_active_levels(lvls);
 #endif
 
   std::filesystem::path base_path = af->homePath();

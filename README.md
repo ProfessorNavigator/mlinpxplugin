@@ -25,7 +25,7 @@ You may need [MSYS2](https://www.msys2.org/) project for building and installati
 `cmake --build _build`\
 `cmake --install _build`
 
-Also you mast set prefix by CMAKE_INSTALL_PREFIX option (it can be /uctr64 or /mingw64 for example).
+Also you must set prefix by CMAKE_INSTALL_PREFIX option (it can be /uctr64 or /mingw64 for example).
 
 ## Dependencies
 You need [MyLibrary](https://github.com/ProfessorNavigator/mylibrary) (version >= 4.0), built with option USE_PLUGINS set to `ON`. Also you may need git (to clone repository). 
