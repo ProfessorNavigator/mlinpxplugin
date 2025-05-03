@@ -3,6 +3,7 @@
 Plugin for [MyLibrary](https://github.com/ProfessorNavigator/mylibrary). This plugin imports books collections from .inpx files.
 
 ## Installation
+MLInpxPlugin can be installed to any directory. Only compulsory condition is: translation file (MLInpxPlugin.mo) should be in <path_to_mylibrary_executable>/../share/locale/<language_code>/LC_MESSAGES. Only English language will be available otherwise.
 ### Linux
 `git clone https://github.com/ProfessorNavigator/mlinpxplugin.git`\
 `cd mlinpxplugin`\
@@ -34,7 +35,7 @@ You need [MyLibrary](https://github.com/ProfessorNavigator/mylibrary) (version >
 [MyLibrary](https://github.com/ProfessorNavigator/mylibrary) libraries must be in one of the system paths (indicated in `Path` system variable). Another option is to install MyLibrary by MSYS2.
 
 ## Usage
-MLInpxPlugin may be installed to any directory. After installation, launch [MyLibrary](https://github.com/ProfessorNavigator/mylibrary) and open plugins window. Set full path to libmlinpxplugin, then launch plugin. Set path to .inpx file, path to books directory and new collection name. Plugins work can take some time: it needs to calculate hash sums of all collection files. After plugins work has been finished, new collection will appear in collections list of MyLibrary.
+After installation has been completed, launch [MyLibrary](https://github.com/ProfessorNavigator/mylibrary) and open plugins window. Set full path to libmlinpxplugin, then launch plugin. Set path to .inpx file, path to books directory and new collection name. Plugins work can take some time: it needs to calculate hash sums of all collection files. After plugins work has been finished, new collection will appear in collections list of MyLibrary.
 
 ## License
 
