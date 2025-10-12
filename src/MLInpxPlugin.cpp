@@ -27,8 +27,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <thread>
 #endif
 
@@ -51,155 +50,146 @@ MLInpxPlugin::MLInpxPlugin(void *af_ptr) : MLPlugin(af_ptr)
 void
 MLInpxPlugin::createWindow(Gtk::Window *parent_window)
 {
+  this->parent_window = parent_window;
+
+  textdomain(plugin_name.c_str());
+
+  main_window = new Gtk::Window;
+  main_window->set_application(parent_window->get_application());
+  main_window->set_title(plugin_name);
+  main_window->set_name("MLwindow");
+  main_window->set_transient_for(*parent_window);
+  main_window->set_modal(true);
+  setWindowSizes();
+
+  Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
+  grid->set_halign(Gtk::Align::FILL);
+  grid->set_valign(Gtk::Align::FILL);
+  main_window->set_child(*grid);
+
+  Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_halign(Gtk::Align::START);
+  lab->set_name("windowLabel");
+  lab->set_text(gettext("Path to .inpx file:"));
+  grid->attach(*lab, 0, 0, 2, 1);
+
+  path_to_inpx = Gtk::make_managed<Gtk::Entry>();
+  path_to_inpx->set_margin(5);
+  path_to_inpx->set_halign(Gtk::Align::FILL);
+  path_to_inpx->set_hexpand(true);
+  path_to_inpx->set_name("windowEntry");
+  grid->attach(*path_to_inpx, 0, 1, 1, 1);
+
+  Gtk::Button *open = Gtk::make_managed<Gtk::Button>();
+  open->set_margin(5);
+  open->set_halign(Gtk::Align::CENTER);
+  open->set_name("operationBut");
+  open->set_label(gettext("Open"));
+  open->signal_clicked().connect(
+      std::bind(&MLInpxPlugin::fileDialog, this, 1));
+  grid->attach(*open, 1, 1, 1, 1);
+
+  lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_halign(Gtk::Align::START);
+  lab->set_name("windowLabel");
+  lab->set_text(gettext("Path to books directory:"));
+  grid->attach(*lab, 0, 2, 2, 1);
+
+  path_to_books = Gtk::make_managed<Gtk::Entry>();
+  path_to_books->set_margin(5);
+  path_to_books->set_halign(Gtk::Align::FILL);
+  path_to_books->set_hexpand(true);
+  path_to_books->set_name("windowEntry");
+  grid->attach(*path_to_books, 0, 3, 1, 1);
+
+  open = Gtk::make_managed<Gtk::Button>();
+  open->set_margin(5);
+  open->set_halign(Gtk::Align::CENTER);
+  open->set_name("operationBut");
+  open->set_label(gettext("Open"));
+  open->signal_clicked().connect(
+      std::bind(&MLInpxPlugin::fileDialog, this, 2));
+  grid->attach(*open, 1, 3, 1, 1);
+
+  lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_halign(Gtk::Align::START);
+  lab->set_name("windowLabel");
+  lab->set_text(gettext("New collection name:"));
+  grid->attach(*lab, 0, 4, 2, 1);
+
+  collection_name = Gtk::make_managed<Gtk::Entry>();
+  collection_name->set_margin(5);
+  collection_name->set_halign(Gtk::Align::FILL);
+  collection_name->set_hexpand(true);
+  collection_name->set_name("windowEntry");
+  grid->attach(*collection_name, 0, 5, 2, 1);
+
+  Gtk::Box *thr_box
+      = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL);
+  grid->attach(*thr_box, 0, 6, 2, 1);
+
+  lab = Gtk::make_managed<Gtk::Label>();
+  lab->set_margin(5);
+  lab->set_halign(Gtk::Align::START);
+  lab->set_name("windowLabel");
+  std::stringstream strm;
+  strm.imbue(std::locale("C"));
 #ifdef USE_OPENMP
-#pragma omp parallel
-#pragma omp masked
-  {
+  strm << omp_get_max_threads();
+#else
+  strm << std::thread::hardware_concurrency();
 #endif
-    this->parent_window = parent_window;
+  lab->set_text(Glib::ustring(gettext("Threads number")) + " ("
+                + gettext("recommended max number is") + " "
+                + Glib::ustring(strm.str()) + "):");
+  thr_box->append(*lab);
 
-    textdomain(plugin_name.c_str());
+  thr_num = Gtk::make_managed<Gtk::Entry>();
+  thr_num->set_margin(5);
+  thr_num->set_halign(Gtk::Align::START);
+  thr_num->set_max_width_chars(3);
+  thr_num->set_name("windowEntry");
+  thr_num->set_alignment(Gtk::Align::CENTER);
+  thr_num->set_text("1");
+  thr_box->append(*thr_num);
 
-    main_window = new Gtk::Window;
-    main_window->set_application(parent_window->get_application());
-    main_window->set_title(plugin_name);
-    main_window->set_name("MLwindow");
-    main_window->set_transient_for(*parent_window);
-    main_window->set_modal(true);
-    setWindowSizes();
+  Gtk::Grid *controls_grid = Gtk::make_managed<Gtk::Grid>();
+  controls_grid->set_halign(Gtk::Align::FILL);
+  controls_grid->set_hexpand(true);
+  controls_grid->set_column_homogeneous(true);
+  grid->attach(*controls_grid, 0, 7, 2, 1);
 
-    Gtk::Grid *grid = Gtk::make_managed<Gtk::Grid>();
-    grid->set_halign(Gtk::Align::FILL);
-    grid->set_valign(Gtk::Align::FILL);
-    main_window->set_child(*grid);
+  Gtk::Button *import = Gtk::make_managed<Gtk::Button>();
+  import->set_margin(5);
+  import->set_halign(Gtk::Align::CENTER);
+  import->set_name("applyBut");
+  import->set_label(gettext("Import"));
+  import->signal_clicked().connect(
+      std::bind(&MLInpxPlugin::checkEntries, this));
+  controls_grid->attach(*import, 0, 0, 1, 1);
 
-    Gtk::Label *lab = Gtk::make_managed<Gtk::Label>();
-    lab->set_margin(5);
-    lab->set_halign(Gtk::Align::START);
-    lab->set_name("windowLabel");
-    lab->set_text(gettext("Path to .inpx file:"));
-    grid->attach(*lab, 0, 0, 2, 1);
+  Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
+  cancel->set_margin(5);
+  cancel->set_halign(Gtk::Align::CENTER);
+  cancel->set_name("cancelBut");
+  cancel->set_label(gettext("Close"));
+  cancel->signal_clicked().connect(
+      std::bind(&Gtk::Window::close, main_window));
+  controls_grid->attach(*cancel, 1, 0, 1, 1);
 
-    path_to_inpx = Gtk::make_managed<Gtk::Entry>();
-    path_to_inpx->set_margin(5);
-    path_to_inpx->set_halign(Gtk::Align::FILL);
-    path_to_inpx->set_hexpand(true);
-    path_to_inpx->set_name("windowEntry");
-    grid->attach(*path_to_inpx, 0, 1, 1, 1);
+  main_window->signal_close_request().connect(
+      [this] {
+        std::unique_ptr<Gtk::Window> win(main_window);
+        win->set_visible(false);
+        main_window = nullptr;
+        return true;
+      },
+      false);
 
-    Gtk::Button *open = Gtk::make_managed<Gtk::Button>();
-    open->set_margin(5);
-    open->set_halign(Gtk::Align::CENTER);
-    open->set_name("operationBut");
-    open->set_label(gettext("Open"));
-    open->signal_clicked().connect(
-        std::bind(&MLInpxPlugin::fileDialog, this, 1));
-    grid->attach(*open, 1, 1, 1, 1);
-
-    lab = Gtk::make_managed<Gtk::Label>();
-    lab->set_margin(5);
-    lab->set_halign(Gtk::Align::START);
-    lab->set_name("windowLabel");
-    lab->set_text(gettext("Path to books directory:"));
-    grid->attach(*lab, 0, 2, 2, 1);
-
-    path_to_books = Gtk::make_managed<Gtk::Entry>();
-    path_to_books->set_margin(5);
-    path_to_books->set_halign(Gtk::Align::FILL);
-    path_to_books->set_hexpand(true);
-    path_to_books->set_name("windowEntry");
-    grid->attach(*path_to_books, 0, 3, 1, 1);
-
-    open = Gtk::make_managed<Gtk::Button>();
-    open->set_margin(5);
-    open->set_halign(Gtk::Align::CENTER);
-    open->set_name("operationBut");
-    open->set_label(gettext("Open"));
-    open->signal_clicked().connect(
-        std::bind(&MLInpxPlugin::fileDialog, this, 2));
-    grid->attach(*open, 1, 3, 1, 1);
-
-    lab = Gtk::make_managed<Gtk::Label>();
-    lab->set_margin(5);
-    lab->set_halign(Gtk::Align::START);
-    lab->set_name("windowLabel");
-    lab->set_text(gettext("New collection name:"));
-    grid->attach(*lab, 0, 4, 2, 1);
-
-    collection_name = Gtk::make_managed<Gtk::Entry>();
-    collection_name->set_margin(5);
-    collection_name->set_halign(Gtk::Align::FILL);
-    collection_name->set_hexpand(true);
-    collection_name->set_name("windowEntry");
-    grid->attach(*collection_name, 0, 5, 2, 1);
-
-    Gtk::Box *thr_box
-        = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL);
-    grid->attach(*thr_box, 0, 6, 2, 1);
-
-    lab = Gtk::make_managed<Gtk::Label>();
-    lab->set_margin(5);
-    lab->set_halign(Gtk::Align::START);
-    lab->set_name("windowLabel");
-    std::stringstream strm;
-    strm.imbue(std::locale("C"));
-#ifndef USE_OPENMP
-    strm << std::thread::hardware_concurrency();
-#endif
-#ifdef USE_OPENMP
-    strm << omp_get_num_procs();
-#endif
-    lab->set_text(Glib::ustring(gettext("Threads number")) + " ("
-                  + gettext("recommended max number is") + " "
-                  + Glib::ustring(strm.str()) + "):");
-    thr_box->append(*lab);
-
-    thr_num = Gtk::make_managed<Gtk::Entry>();
-    thr_num->set_margin(5);
-    thr_num->set_halign(Gtk::Align::START);
-    thr_num->set_max_width_chars(3);
-    thr_num->set_name("windowEntry");
-    thr_num->set_alignment(Gtk::Align::CENTER);
-    thr_num->set_text("1");
-    thr_box->append(*thr_num);
-
-    Gtk::Grid *controls_grid = Gtk::make_managed<Gtk::Grid>();
-    controls_grid->set_halign(Gtk::Align::FILL);
-    controls_grid->set_hexpand(true);
-    controls_grid->set_column_homogeneous(true);
-    grid->attach(*controls_grid, 0, 7, 2, 1);
-
-    Gtk::Button *import = Gtk::make_managed<Gtk::Button>();
-    import->set_margin(5);
-    import->set_halign(Gtk::Align::CENTER);
-    import->set_name("applyBut");
-    import->set_label(gettext("Import"));
-    import->signal_clicked().connect(
-        std::bind(&MLInpxPlugin::checkEntries, this));
-    controls_grid->attach(*import, 0, 0, 1, 1);
-
-    Gtk::Button *cancel = Gtk::make_managed<Gtk::Button>();
-    cancel->set_margin(5);
-    cancel->set_halign(Gtk::Align::CENTER);
-    cancel->set_name("cancelBut");
-    cancel->set_label(gettext("Close"));
-    cancel->signal_clicked().connect(
-        std::bind(&Gtk::Window::close, main_window));
-    controls_grid->attach(*cancel, 1, 0, 1, 1);
-
-    main_window->signal_close_request().connect(
-        [this] {
-          std::unique_ptr<Gtk::Window> win(main_window);
-          win->set_visible(false);
-          main_window = nullptr;
-          return true;
-        },
-        false);
-
-    main_window->present();
-#ifdef USE_OPENMP
-  }
-#endif
+  main_window->present();
 }
 
 void
@@ -253,9 +243,7 @@ MLInpxPlugin::fileDialog(const int &variant)
                                   std::placeholders::_1, fd),
                         cncl);
     }
-#endif
-
-#ifdef ML_GTK_OLD
+#else
   Gtk::FileChooserDialog *fd;
   if(variant == 1)
     {
@@ -342,9 +330,7 @@ MLInpxPlugin::booksDirectoryPathSlot(int respons_id,
     }
   fd->close();
 }
-#endif
-
-#ifndef ML_GTK_OLD
+#else
 void
 MLInpxPlugin::inpxFilePathSlot(const Glib::RefPtr<Gio::AsyncResult> &result,
                                const Glib::RefPtr<Gtk::FileDialog> &fd)

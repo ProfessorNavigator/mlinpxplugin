@@ -24,8 +24,7 @@
 
 #ifdef USE_OPENMP
 #include <omp.h>
-#endif
-#ifndef USE_OPENMP
+#else
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
@@ -64,10 +63,9 @@ private:
   int thr_num = 1;
 #ifndef USE_OPENMP
   std::atomic<bool> cancel;
-#endif
-#ifdef USE_OPENMP
+#else
   bool cancel = false;
-#endif  
+#endif
   Hasher *hsh;
 
   std::vector<ArchEntry> books_entries_list;
@@ -75,8 +73,7 @@ private:
   std::vector<FileParseEntry> base;
 #ifndef USE_OPENMP
   std::mutex base_mtx;
-#endif
-#ifdef USE_OPENMP
+#else
   omp_lock_t base_mtx;
 #endif
 
@@ -87,9 +84,7 @@ private:
   double total_size = 0.0;
 #ifdef USE_OPENMP
   double parsed_bytes = 0.0;
-#endif
-
-#ifndef USE_OPENMP
+#else
   std::atomic<double> parsed_bytes;
   int run_thr = 0;
   std::mutex run_thr_mtx;

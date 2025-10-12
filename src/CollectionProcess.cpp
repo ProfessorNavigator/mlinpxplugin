@@ -35,14 +35,13 @@ CollectionProcess::CollectionProcess(const std::shared_ptr<AuxFunc> &af,
 #ifndef USE_OPENMP
   cancel.store(false);
   parsed_bytes.store(0.0);
-#endif
-#ifdef USE_OPENMP
+#else
   omp_init_lock(&base_mtx);
 #endif
 }
 
 CollectionProcess::~CollectionProcess()
-{  
+{
   delete hsh;
 #ifdef USE_OPENMP
   omp_destroy_lock(&base_mtx);
@@ -67,8 +66,7 @@ CollectionProcess::collectFiles(const std::filesystem::path &inpx_path,
         {
           break;
         }
-#endif
-#ifdef USE_OPENMP
+#else
       bool cncl;
 #pragma omp atomic read
       cncl = cancel;
@@ -210,13 +208,8 @@ CollectionProcess::createBase()
   run_thr_var.wait(ullock, [this] {
     return run_thr == 0;
   });
-#endif
-
-#ifdef USE_OPENMP
+#else
   omp_set_num_threads(thr_num);
-  omp_set_dynamic(true);
-  int lvls = omp_get_max_active_levels();
-  omp_set_max_active_levels(omp_get_supported_active_levels());
 #pragma omp parallel
 #pragma omp for
   for(auto it = books_entries_list.begin(); it != books_entries_list.end();
@@ -267,23 +260,17 @@ CollectionProcess::createBase()
         }
       else
         {
-#pragma omp parallel
-#pragma omp master
+#pragma omp parallel masked
           {
-#pragma omp masked
-            {
-              omp_event_handle_t event;
+            omp_event_handle_t event;
 #pragma omp task detach(event)
-              {
-                fpe.file_hash = hsh->file_hashing(p);
-                omp_fulfill_event(event);
-              }
+            {
+              fpe.file_hash = hsh->file_hashing(p);
+              omp_fulfill_event(event);
             }
 
             parseInp(inpx_path, ent, fpe);
-#pragma omp taskwait
           }
-
           omp_set_lock(&base_mtx);
           base.emplace_back(fpe);
           omp_unset_lock(&base_mtx);
@@ -299,8 +286,6 @@ CollectionProcess::createBase()
           signal_progress(sz, total_size);
         }
     }
-  omp_set_dynamic(false);
-  omp_set_max_active_levels(lvls);
 #endif
 
   std::filesystem::path base_path = af->homePath();
@@ -459,8 +444,7 @@ CollectionProcess::stopAll()
 {
 #ifndef USE_OPENMP
   cancel.store(true);
-#endif
-#ifdef USE_OPENMP
+#else
 #pragma omp atomic write
   cancel = true;
 #endif
@@ -502,8 +486,7 @@ CollectionProcess::parseInp(const std::filesystem::path &arch_path,
             {
               break;
             }
-#endif
-#ifdef USE_OPENMP
+#else
           bool cncl;
 #pragma omp atomic read
           cncl = cancel;

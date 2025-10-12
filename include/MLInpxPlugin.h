@@ -21,8 +21,7 @@
 
 #ifndef ML_GTK_OLD
 #include <gtkmm-4.0/gtkmm/filedialog.h>
-#endif
-#ifdef ML_GTK_OLD
+#else
 #include <gtkmm-4.0/gtkmm/filechooserdialog.h>
 #endif
 
@@ -77,14 +76,13 @@ protected:
 
 extern "C"
 {
-#ifdef __linux
+#if defined(__linux)
   MLPlugin *
   create(void *af_ptr)
   {
     return new MLInpxPlugin(af_ptr);
   }
-#endif
-#ifdef _WIN32
+#elif defined(_WIN32)
   __declspec(dllexport) MLPlugin *
   create(void *af_ptr)
   {

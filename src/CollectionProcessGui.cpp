@@ -17,13 +17,7 @@
 #include <gtkmm-4.0/gtkmm/button.h>
 #include <gtkmm-4.0/gtkmm/grid.h>
 #include <libintl.h>
-
-#ifdef USE_OPENMP
-#include <omp.h>
-#endif
-#ifndef USE_OPENMP
 #include <thread>
-#endif
 
 CollectionProcessGui::CollectionProcessGui(Gtk::Window *parent_window,
                                            const std::shared_ptr<AuxFunc> &af,
@@ -123,27 +117,12 @@ CollectionProcessGui::launchProc(const std::filesystem::path &inpx_path,
     progress_disp->emit();
   };
 
-#ifndef USE_OPENMP
   std::thread work_thr([this, inpx_path, books_path, coll_name] {
     coll_proc->collectFiles(inpx_path, books_path, coll_name);
     coll_proc->createBase();
     ops_completed_disp->emit();
   });
   work_thr.detach();
-#endif
-#ifdef USE_OPENMP
-#pragma omp masked
-  {
-    omp_event_handle_t event;
-#pragma omp task detach(event)
-    {
-      coll_proc->collectFiles(inpx_path, books_path, coll_name);
-      coll_proc->createBase();
-      ops_completed_disp->emit();
-      omp_fulfill_event(event);
-    }
-  }
-#endif
 }
 
 void
