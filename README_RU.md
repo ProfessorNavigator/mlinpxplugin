@@ -27,7 +27,7 @@ MLInpxPlugin может быть установлен в любую директ
 `cmake --build _build`\
 `cmake --install _build` 
 
-Вам также обязательно необходимо указать префикс опцией CMAKE_INSTALL_PREFIX (префикс может быть например /ucrt64 или /mingw64).
+Вам также обязательно необходимо указать префикс опцией CMAKE_INSTALL_PREFIX (префикс может быть например `/ucrt64` или `/mingw64`).
 
 ## Зависимости
 Для сборки MLInpxPlugin нужна программа [MyLibrary](https://github.com/ProfessorNavigator/mylibrary) (версии >= 4.0), собранная с опцией USE_PLUGINS, установленной в `ON`. Кроме того вам может потребоваться git (для клонирования репозитория).
