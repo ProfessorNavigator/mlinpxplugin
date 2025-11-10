@@ -38,7 +38,7 @@
 MLInpxPlugin::MLInpxPlugin(void *af_ptr) : MLPlugin(af_ptr)
 {
   plugin_name = "MLInpxPlugin";
-  std::filesystem::path txt_domain = af->share_path();
+  std::filesystem::path txt_domain = af->sharePath();
   txt_domain /= std::filesystem::u8path("locale");
   bindtextdomain(plugin_name.c_str(), txt_domain.u8string().c_str());
   bind_textdomain_codeset(plugin_name.c_str(), "UTF-8");

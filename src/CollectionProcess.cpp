@@ -459,7 +459,7 @@ CollectionProcess::parseInp(const std::filesystem::path &arch_path,
                             const ArchEntry &e, FileParseEntry &fpe)
 {
   std::filesystem::path p
-      = af->temp_path() / std::filesystem::u8path(af->randomFileName());
+      = af->tempPath() / std::filesystem::u8path(af->randomFileName());
   SelfRemovingPath srp(p);
 
   LibArchive la(af);
