@@ -23,7 +23,12 @@
 #include <iostream>
 
 #ifndef USE_OPENMP
+#include <pthread.h>
 #include <thread>
+#ifdef _WIN32
+#include <errhandlingapi.h>
+#include <winbase.h>
+#endif
 #endif
 
 CollectionProcess::CollectionProcess(const std::shared_ptr<AuxFunc> &af,
@@ -124,6 +129,27 @@ void
 CollectionProcess::createBase()
 {
 #ifndef USE_OPENMP
+  std::vector<std::tuple<unsigned, bool>> free;
+  if(thr_num > 0)
+    {
+      free.reserve(thr_num);
+      for(unsigned i = 0; i < static_cast<unsigned>(thr_num); i++)
+        {
+          free.push_back(std::make_tuple(i, true));
+        }
+    }
+  else
+    {
+      free.reserve(1);
+      free.push_back(std::make_tuple(0, true));
+    }
+
+  struct proc_num
+  {
+    std::vector<std::tuple<unsigned, bool>>::iterator main_proc;
+    std::vector<std::tuple<unsigned, bool>>::iterator secondary_proc;
+  };
+
   for(auto it = books_entries_list.begin(); it != books_entries_list.end();
       it++)
     {
@@ -133,81 +159,201 @@ CollectionProcess::createBase()
         }
       ArchEntry ent = *it;
       std::unique_lock<std::mutex> ullock(run_thr_mtx);
-      run_thr++;
-      std::thread thr([this, ent] {
-        FileParseEntry fpe;
-        std::filesystem::path p = std::filesystem::u8path(ent.filename);
-        std::error_code ec;
-        std::filesystem::path found_p;
-        for(auto &pp : std::filesystem::directory_iterator(books_path, ec))
-          {
-            if(pp.path().stem() == p.stem())
-              {
-                found_p = pp.path();
-                break;
-              }
-          }
-        if(ec)
-          {
-            std::cout << "CollectionProcess::createBase error: "
-                      << ec.message() << std::endl;
-            cancel.store(true);
-            std::lock_guard<std::mutex> lglock(run_thr_mtx);
-            run_thr--;
-            run_thr_var.notify_all();
-            return void();
-          }
-        if(found_p.empty())
-          {
-            std::lock_guard<std::mutex> lglock(run_thr_mtx);
-            run_thr--;
-            run_thr_var.notify_all();
-            return void();
-          }
-        fpe.file_rel_path = found_p.filename().u8string();
-        p = found_p;
 
-        double sz = static_cast<double>(std::filesystem::file_size(p, ec));
-        if(ec)
-          {
-            std::cout << "CollectionProcess::createBase error: "
-                      << ec.message() << std::endl;
-          }
-        else
-          {
-            std::thread thr([this, p, &fpe] {
-              fpe.file_hash = hsh->file_hashing(p);
+      proc_num pr;
+      run_thr_var.wait(ullock,
+                       [this, &free, &pr]
+                         {
+                           if(free.size() > 1)
+                             {
+                               int num_free = 0;
+                               for(auto it = free.begin(); it != free.end();
+                                   it++)
+                                 {
+                                   if(std::get<1>(*it))
+                                     {
+                                       num_free++;
+                                       if(num_free == 1)
+                                         {
+                                           pr.main_proc = it;
+                                         }
+                                       else
+                                         {
+                                           pr.secondary_proc = it;
+                                           break;
+                                         }
+                                     }
+                                 }
+                               return num_free >= 2;
+                             }
+                           else
+                             {
+                               pr.main_proc = free.begin();
+                               pr.secondary_proc = free.begin();
+                               return std::get<1>(free[0]);
+                             }
+                         });
+      std::get<1>(*pr.main_proc) = false;
+      std::get<1>(*pr.secondary_proc) = false;
+
+      std::thread thr(
+          [this, ent, pr, &free]
+            {
+              FileParseEntry fpe;
+              std::filesystem::path p = std::filesystem::u8path(ent.filename);
+              std::error_code ec;
+              std::filesystem::path found_p;
+              for(auto &pp :
+                  std::filesystem::directory_iterator(books_path, ec))
+                {
+                  if(pp.path().stem() == p.stem())
+                    {
+                      found_p = pp.path();
+                      break;
+                    }
+                }
+              if(ec)
+                {
+                  std::cout << "CollectionProcess::createBase error: "
+                            << ec.message() << std::endl;
+                  cancel.store(true);
+                  std::lock_guard<std::mutex> lglock(run_thr_mtx);
+                  std::get<1>(*pr.main_proc) = true;
+                  std::get<1>(*pr.secondary_proc) = true;
+                  run_thr_var.notify_all();
+                  return void();
+                }
+              if(found_p.empty())
+                {
+                  std::lock_guard<std::mutex> lglock(run_thr_mtx);
+                  std::get<1>(*pr.main_proc) = true;
+                  std::get<1>(*pr.secondary_proc) = true;
+                  run_thr_var.notify_all();
+                  return void();
+                }
+              fpe.file_rel_path = found_p.filename().u8string();
+              p = found_p;
+
+              double sz
+                  = static_cast<double>(std::filesystem::file_size(p, ec));
+              if(ec)
+                {
+                  std::cout << "CollectionProcess::createBase error: "
+                            << ec.message() << std::endl;
+                }
+              else
+                {
+                  if(pr.main_proc != pr.secondary_proc)
+                    {
+                      std::thread thr(
+                          [this, ent, &fpe, pr]
+                            {
+                              parseInp(inpx_path, ent, fpe);
+                              std::lock_guard<std::mutex> lglock(run_thr_mtx);
+                              std::get<1>(*pr.secondary_proc) = true;
+                              run_thr_var.notify_all();
+                            });
+#ifdef __linux
+                      cpu_set_t cpu_set;
+                      CPU_ZERO(&cpu_set);
+                      CPU_SET(std::get<0>(*pr.secondary_proc), &cpu_set);
+                      int er = pthread_setaffinity_np(
+                          thr.native_handle(), sizeof(cpu_set_t), &cpu_set);
+                      if(er != 0)
+                        {
+                          std::cout << "CollectionProcess::createBase "
+                                       "(secondary): \""
+                                    << std::strerror(er) << "\"" << std::endl;
+                        }
+#elif defined(_WIN32)
+                      DWORD_PTR mask = 1;
+                      mask = mask << std::get<0>(*pr.secondary_proc);
+                      HANDLE handle = pthread_gethandle(thr.native_handle());
+                      if(handle)
+                        {
+                          if(SetThreadAffinityMask(handle, mask) == 0)
+                            {
+                              std::cout << "CollectionProcess::createBase "
+                                           "(secondary): \""
+                                        << std::strerror(GetLastError())
+                                        << "\"" << std::endl;
+                            }
+                        }
+                      else
+                        {
+                          std::cout << "CollectionProcess::createBase "
+                                       "(secondary): handle is null! "
+                                    << std::endl;
+                        }
+#endif
+                      fpe.file_hash = hsh->file_hashing(p);
+                      thr.join();
+                    }
+                  else
+                    {
+                      parseInp(inpx_path, ent, fpe);
+                      fpe.file_hash = hsh->file_hashing(p);
+                    }
+
+                  base_mtx.lock();
+                  base.emplace_back(fpe);
+                  base_mtx.unlock();
+                }
+
+              parsed_bytes.store(parsed_bytes.load() + sz);
+              if(signal_progress)
+                {
+                  signal_progress(parsed_bytes.load(), total_size);
+                }
+              std::lock_guard<std::mutex> lglock(run_thr_mtx);
+              std::get<1>(*pr.main_proc) = true;
+              run_thr_var.notify_all();
             });
-
-            parseInp(inpx_path, ent, fpe);
-
-            thr.join();
-
-            base_mtx.lock();
-            base.emplace_back(fpe);
-            base_mtx.unlock();
-          }
-
-        parsed_bytes.store(parsed_bytes.load() + sz);
-        if(signal_progress)
-          {
-            signal_progress(parsed_bytes.load(), total_size);
-          }
-        std::lock_guard<std::mutex> lglock(run_thr_mtx);
-        run_thr--;
-        run_thr_var.notify_all();
-      });
+#ifdef __linux
+      cpu_set_t cpu_set;
+      CPU_ZERO(&cpu_set);
+      CPU_SET(std::get<0>(*pr.main_proc), &cpu_set);
+      int er = pthread_setaffinity_np(thr.native_handle(), sizeof(cpu_set_t),
+                                      &cpu_set);
+      if(er != 0)
+        {
+          std::cout << "CollectionProcess::createBase (main): \""
+                    << std::strerror(er) << "\"" << std::endl;
+        }
+#elif defined(_WIN32)
+      DWORD_PTR mask = 1;
+      mask = mask << std::get<0>(*pr.main_proc);
+      HANDLE handle = pthread_gethandle(thr.native_handle());
+      if(handle)
+        {
+          if(SetThreadAffinityMask(handle, mask) == 0)
+            {
+              std::cout << "CollectionProcess::createBase (main): \""
+                        << std::strerror(GetLastError()) << "\"" << std::endl;
+            }
+        }
+      else
+        {
+          std::cout << "CollectionProcess::createBase (main): handle is null! "
+                    << std::endl;
+        }
+#endif
       thr.detach();
-
-      run_thr_var.wait(ullock, [this] {
-        return run_thr < thr_num;
-      });
     }
 
   std::unique_lock<std::mutex> ullock(run_thr_mtx);
-  run_thr_var.wait(ullock, [this] {
-    return run_thr == 0;
-  });
+  run_thr_var.wait(ullock,
+                   [&free]
+                     {
+                       for(auto it = free.begin(); it != free.end(); it++)
+                         {
+                           if(!std::get<1>(*it))
+                             {
+                               return false;
+                             }
+                         }
+                       return true;
+                     });
 #else
   omp_set_num_threads(thr_num);
 #pragma omp parallel
@@ -265,11 +411,10 @@ CollectionProcess::createBase()
             omp_event_handle_t event;
 #pragma omp task detach(event)
             {
-              fpe.file_hash = hsh->file_hashing(p);
+              parseInp(inpx_path, ent, fpe);
               omp_fulfill_event(event);
             }
-
-            parseInp(inpx_path, ent, fpe);
+            fpe.file_hash = hsh->file_hashing(p);
           }
           omp_set_lock(&base_mtx);
           base.emplace_back(fpe);
@@ -534,16 +679,18 @@ CollectionProcess::parseEntry(const std::string &ent, FileParseEntry &fpe)
                     = std::string(ent.begin() + n_beg, ent.begin() + n_end);
                 bpe.book_author.erase(std::remove_if(bpe.book_author.begin(),
                                                      bpe.book_author.end(),
-                                                     [](char &el) {
-                                                       if(el >= 0 && el <= 32)
-                                                         {
-                                                           return true;
-                                                         }
-                                                       else
-                                                         {
-                                                           return false;
-                                                         }
-                                                     }),
+                                                     [](char &el)
+                                                       {
+                                                         if(el >= 0
+                                                            && el <= 32)
+                                                           {
+                                                             return true;
+                                                           }
+                                                         else
+                                                           {
+                                                             return false;
+                                                           }
+                                                       }),
                                       bpe.book_author.end());
                 if(bpe.book_author.size() > 0)
                   {
@@ -628,16 +775,17 @@ CollectionProcess::parseEntry(const std::string &ent, FileParseEntry &fpe)
                     = std::string(ent.begin() + n_beg, ent.begin() + n_end);
                 bpe.book_genre.erase(std::remove_if(bpe.book_genre.begin(),
                                                     bpe.book_genre.end(),
-                                                    [](char &el) {
-                                                      if(el >= 0 && el <= 32)
-                                                        {
-                                                          return true;
-                                                        }
-                                                      else
-                                                        {
-                                                          return false;
-                                                        }
-                                                    }),
+                                                    [](char &el)
+                                                      {
+                                                        if(el >= 0 && el <= 32)
+                                                          {
+                                                            return true;
+                                                          }
+                                                        else
+                                                          {
+                                                            return false;
+                                                          }
+                                                      }),
                                      bpe.book_genre.end());
                 if(bpe.book_genre.size() > 0)
                   {

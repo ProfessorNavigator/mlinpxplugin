@@ -86,7 +86,6 @@ private:
   double parsed_bytes = 0.0;
 #else
   std::atomic<double> parsed_bytes;
-  int run_thr = 0;
   std::mutex run_thr_mtx;
   std::condition_variable run_thr_var;
 #endif
