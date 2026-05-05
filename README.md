@@ -1,5 +1,7 @@
 # MLInpxPlugin
 
+Attention! This repository has been archived! 
+
 Plugin for [MyLibrary](https://github.com/ProfessorNavigator/mylibrary). This plugin imports books collections from .inpx files.
 
 ## Installation

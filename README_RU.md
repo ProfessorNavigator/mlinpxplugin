@@ -1,5 +1,7 @@
 # MLInpxPlugin
 
+Внимание! Данный репозиторий был переведён в архивный режим!
+
 Плагин для [MyLibrary](https://github.com/ProfessorNavigator/mylibrary). Импортирует коллекции книг из .inpx файлов.
 
 ## Установка
